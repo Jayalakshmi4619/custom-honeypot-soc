@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Python environments
 .venv/
 venv/
@@ -35,3 +36,59 @@ honeypot/host_key.pub
 dashboard/templates/index.html@sS
 dashboard/templates/index_backup.html
 dashboard/templates/index_working.backup.html
+=======
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[codz]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Databases
+database/*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+logs/
+*.log
+*.jsonl
+
+# SSH private keys
+honeypot/host_key
+honeypot/host_key.pub
+
+# Editor and backup files
+.vscode/
+.idea/
+*.bak
+*.backup
+*~
+*.swp
