@@ -1,0 +1,1024 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Honeypot | SOC Dashboard</title>
+
+    <style>
+        :root {
+            --bg: #0b1120;
+            --panel: #131d30;
+            --panel-light: #19263b;
+            --border: #293851;
+            --text: #e6edf7;
+            --muted: #91a2bc;
+            --accent: #38bdf8;
+            --green: #34d399;
+            --yellow: #fbbf24;
+            --red: #fb7185;
+            --purple: #c4b5fd;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        header {
+            padding: 24px 5%;
+            background: #101a2c;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 25px;
+        }
+
+        header p {
+            color: var(--muted);
+            margin: 7px 0 0;
+            font-size: 13px;
+        }
+
+        .brand {
+            display: flex;
+            gap: 13px;
+            align-items: center;
+        }
+
+        .brand-icon {
+            width: 45px;
+            height: 45px;
+            display: grid;
+            place-items: center;
+            border-radius: 12px;
+            background: #153653;
+            color: var(--accent);
+            font-size: 23px;
+        }
+
+        .connection {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .connection span {
+            color: var(--green);
+        }
+
+        main {
+            max-width: 1500px;
+            margin: auto;
+            padding: 28px 5%;
+        }
+
+        .section-heading {
+            margin: 0 0 17px;
+            font-size: 18px;
+        }
+
+        .section-description {
+            margin: -9px 0 18px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 21px;
+            min-width: 0;
+        }
+
+        .stat-label {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .stat-value {
+            font-size: 30px;
+            font-weight: bold;
+            margin-top: 12px;
+            overflow-wrap: anywhere;
+        }
+
+        .stat-note {
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        .blue {
+            color: var(--accent);
+        }
+
+        .green {
+            color: var(--green);
+        }
+
+        .yellow {
+            color: var(--yellow);
+        }
+
+        .red {
+            color: var(--red);
+        }
+
+        .purple {
+            color: var(--purple);
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 28px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 20px 22px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .panel-header h2 {
+            font-size: 17px;
+            margin: 0;
+        }
+
+        .panel-header p {
+            color: var(--muted);
+            font-size: 12px;
+            margin: 6px 0 0;
+        }
+
+        .panel-body {
+            padding: 20px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            min-width: 750px;
+        }
+
+        th {
+            text-align: left;
+            color: var(--muted);
+            font-weight: 600;
+            background: var(--panel-light);
+            white-space: nowrap;
+        }
+
+        th, td {
+            padding: 14px 12px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        tbody tr:hover {
+            background: rgba(56, 189, 248, 0.035);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .severity-high, .severity-critical {
+            color: #fecdd3;
+            background: #4c1d2a;
+        }
+
+        .severity-medium {
+            color: #fde68a;
+            background: #443316;
+        }
+
+        .severity-low {
+            color: #a7f3d0;
+            background: #123b31;
+        }
+
+        .status-new {
+            color: #bae6fd;
+            background: #12344c;
+        }
+
+        .status-in_progress {
+            color: #fde68a;
+            background: #443316;
+        }
+
+        .status-investigated {
+            color: #ddd6fe;
+            background: #33265c;
+        }
+
+        .status-closed {
+            color: #a7f3d0;
+            background: #123b31;
+        }
+
+        select, input, button {
+            font: inherit;
+        }
+
+        select, input {
+            color: var(--text);
+            background: #0b1425;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 9px 10px;
+            max-width: 100%;
+        }
+
+        button {
+            cursor: pointer;
+            border: 1px solid #2879a8;
+            background: #16466a;
+            color: #e0f2fe;
+            padding: 9px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        button:hover {
+            background: #1d5b85;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .secondary-button {
+            background: transparent;
+            border-color: var(--border);
+            color: var(--text);
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .alert-controls {
+            display: flex;
+            gap: 7px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .alert-controls select {
+            min-width: 125px;
+        }
+
+        .message {
+            padding: 14px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .error-message {
+            color: #fecdd3;
+        }
+
+        .success-message {
+            color: var(--green);
+        }
+
+        .mitre-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .mitre-card {
+            padding: 17px;
+            border: 1px solid var(--border);
+            background: var(--panel-light);
+            border-radius: 9px;
+        }
+
+        .mitre-id {
+            color: var(--purple);
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .mitre-card h3 {
+            font-size: 14px;
+            line-height: 1.5;
+            margin: 9px 0;
+        }
+
+        .mitre-card p {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .event-description {
+            max-width: 430px;
+            overflow-wrap: anywhere;
+        }
+
+        .footer {
+            text-align: center;
+            color: var(--muted);
+            font-size: 12px;
+            padding: 10px 0 25px;
+        }
+
+        @media (max-width: 900px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .mitre-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 550px) {
+            header h1 {
+                font-size: 20px;
+            }
+
+            main {
+                padding: 20px 4%;
+            }
+
+            .stats-grid, .mitre-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-card {
+                padding: 16px;
+            }
+
+            .stat-value {
+                font-size: 25px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<header>
+    <div class="brand">
+        <div class="brand-icon">⌘</div>
+        <div>
+            <h1>Custom Honeypot <span class="blue">SOC</span></h1>
+            <p>Security monitoring, threat detection and incident triage</p>
+        </div>
+    </div>
+
+    <div class="connection" id="connection-status">
+        <span>●</span> Checking API connection...
+    </div>
+</header>
+
+<main>
+    <section>
+        <h2 class="section-heading">Security Overview</h2>
+        <p class="section-description">
+            Monitor honeypot activity and detected security incidents.
+        </p>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Events</div>
+                <div class="stat-value blue" id="stat-events">—</div>
+                <div class="stat-note">Recorded honeypot activity</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Total Alerts</div>
+                <div class="stat-value yellow" id="stat-alerts">—</div>
+                <div class="stat-note">Recorded detections</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Open Alerts</div>
+                <div class="stat-value red" id="stat-open">—</div>
+                <div class="stat-note">New or under investigation</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Closed Alerts</div>
+                <div class="stat-value green" id="stat-closed">—</div>
+                <div class="stat-note">Alerts marked closed</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Alert Management</h2>
+                <p>Review detections and update their investigation status.</p>
+            </div>
+
+            <div class="filter-row">
+                <select id="alert-filter" aria-label="Filter alerts by status">
+                    <option value="all">All statuses</option>
+                    <option value="new">New</option>
+                    <option value="in_progress">In progress</option>
+                    <option value="investigated">Investigated</option>
+                    <option value="closed">Closed</option>
+                </select>
+
+                <button type="button" onclick="loadAlerts()">Refresh Alerts</button>
+            </div>
+        </div>
+
+        <div id="alert-message" class="message" role="status" aria-live="polite">
+            Loading alerts...
+        </div>
+
+        <div class="table-wrapper" id="alerts-container"></div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>Recent Honeypot Events</h2>
+                <p>Recent activity recorded by your honeypot.</p>
+            </div>
+
+            <button type="button" class="secondary-button" onclick="loadEvents()">
+                Refresh Events
+            </button>
+        </div>
+
+        <div class="table-wrapper" id="events-container">
+            <div class="message">Loading events...</div>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <div>
+                <h2>MITRE ATT&CK Detection Mapping</h2>
+                <p>Techniques associated with recorded alerts.</p>
+            </div>
+        </div>
+
+        <div class="panel-body">
+            <div id="mitre-container" class="mitre-grid">
+                <div class="message">Loading technique information...</div>
+            </div>
+        </div>
+    </section>
+
+    <div class="footer">
+        Custom Honeypot SOC Dashboard · Local monitoring interface
+    </div>
+</main>
+
+<script>
+    /*
+     * API CONFIGURATION
+     *
+     * Change API_URL if your API is hosted on another machine.
+     * For a browser running on the same Kali machine, localhost is suitable.
+     */
+    const API_URL = "http://127.0.0.1:5000";
+
+    let cachedAlerts = [];
+    let cachedEvents = [];
+
+    function escapeHTML(value) {
+        const element = document.createElement("span");
+        element.textContent = String(value ?? "-");
+        return element.innerHTML;
+    }
+
+    function formatDate(value) {
+        if (!value) return "-";
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+            return String(value);
+        }
+
+        return date.toLocaleString();
+    }
+
+    function normalizeStatus(value) {
+        const allowed = [
+            "new",
+            "in_progress",
+            "investigated",
+            "closed"
+        ];
+
+        return allowed.includes(value) ? value : "new";
+    }
+
+    function severityBadge(value) {
+        const allowed = ["low", "medium", "high", "critical"];
+        const severity = String(value || "low").toLowerCase();
+        const safeSeverity = allowed.includes(severity) ? severity : "low";
+
+        return `
+            <span class="badge severity-${safeSeverity}">
+                ${escapeHTML(safeSeverity)}
+            </span>
+        `;
+    }
+
+    function statusBadge(value) {
+        const status = normalizeStatus(value);
+
+        return `
+            <span class="badge status-${status}">
+                ${escapeHTML(status.replace("_", " "))}
+            </span>
+        `;
+    }
+
+    function setAlertMessage(message, type = "") {
+        const element = document.getElementById("alert-message");
+        element.textContent = message;
+        element.className = `message ${type}`;
+    }
+
+    async function fetchJSON(path) {
+        const response = await fetch(`${API_URL}${path}`);
+
+        if (!response.ok) {
+            throw new Error(`Request failed with HTTP ${response.status}`);
+        }
+
+        return response.json();
+    }
+
+    async function checkAPI() {
+        const status = document.getElementById("connection-status");
+
+        try {
+            await fetchJSON("/");
+            status.innerHTML = '<span>●</span> API connected';
+            status.querySelector("span").style.color = "var(--green)";
+        } catch (error) {
+            status.textContent = "API unavailable — check port 5000";
+            status.style.color = "var(--red)";
+        }
+    }
+
+    /*
+     * STATISTICS
+     *
+     * Supports common response formats. If your statistics endpoint uses
+     * different property names, the individual cards may show a dash.
+     */
+    async function loadStatistics() {
+        try {
+            const data = await fetchJSON("/api/statistics");
+
+            const stats = data.statistics || data.stats || data;
+
+            const eventsValue =
+                stats.total_events ??
+                stats.event_count ??
+                stats.events_count ??
+                stats.events;
+
+            const alertsValue =
+                stats.total_alerts ??
+                stats.alert_count ??
+                stats.alerts_count ??
+                stats.alerts;
+
+            if (eventsValue !== undefined && typeof eventsValue !== "object") {
+                document.getElementById("stat-events").textContent = eventsValue;
+            }
+
+            if (alertsValue !== undefined && typeof alertsValue !== "object") {
+                document.getElementById("stat-alerts").textContent = alertsValue;
+            }
+        } catch (error) {
+            console.error("Statistics error:", error);
+        }
+    }
+
+    /*
+     * ALERTS
+     */
+    async function loadAlerts() {
+        const container = document.getElementById("alerts-container");
+
+        setAlertMessage("Loading alerts...");
+
+        try {
+            const data = await fetchJSON("/api/alerts");
+
+            cachedAlerts = Array.isArray(data)
+                ? data
+                : (data.alerts || data.results || []);
+
+            renderAlerts();
+            renderMitre();
+            updateAlertStatistics();
+
+            setAlertMessage(
+                `Loaded ${cachedAlerts.length} alert(s).`,
+                "success-message"
+            );
+        } catch (error) {
+            console.error("Error loading alerts:", error);
+
+            container.innerHTML = "";
+            setAlertMessage(
+                `Could not load alerts: ${error.message}. Check the API server.`,
+                "error-message"
+            );
+        }
+    }
+
+    function renderAlerts() {
+        const container = document.getElementById("alerts-container");
+        const filter = document.getElementById("alert-filter").value;
+
+        const alerts = cachedAlerts.filter(alert => {
+            if (filter === "all") return true;
+            return normalizeStatus(alert.status) === filter;
+        });
+
+        if (alerts.length === 0) {
+            container.innerHTML =
+                '<div class="message">No alerts match this filter.</div>';
+            return;
+        }
+
+        let html = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Timestamp</th>
+                        <th>Alert Type</th>
+                        <th>Service</th>
+                        <th>Source IP</th>
+                        <th>Severity</th>
+                        <th>Events</th>
+                        <th>MITRE</th>
+                        <th>Status</th>
+                        <th>Investigation</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        alerts.forEach(alert => {
+            const id = Number(alert.id);
+
+            if (!Number.isSafeInteger(id) || id < 1) {
+                return;
+            }
+
+            const status = normalizeStatus(alert.status);
+
+            const options = [
+                ["new", "New"],
+                ["in_progress", "In progress"],
+                ["investigated", "Investigated"],
+                ["closed", "Closed"]
+            ].map(([value, label]) => `
+                <option value="${value}" ${status === value ? "selected" : ""}>
+                    ${label}
+                </option>
+            `).join("");
+
+            html += `
+                <tr>
+                    <td>${id}</td>
+                    <td>${escapeHTML(formatDate(alert.timestamp))}</td>
+                    <td>${escapeHTML(alert.alert_type)}</td>
+                    <td>${escapeHTML(alert.service)}</td>
+                    <td>${escapeHTML(alert.source_ip)}</td>
+                    <td>${severityBadge(alert.severity)}</td>
+                    <td>${escapeHTML(alert.event_count ?? 0)}</td>
+                    <td>
+                        <strong>${escapeHTML(alert.mitre_technique_id || "—")}</strong>
+                        <br>
+                        <small>${escapeHTML(alert.mitre_technique_name || "")}</small>
+                    </td>
+                    <td>${statusBadge(status)}</td>
+                    <td>
+                        <div class="alert-controls">
+                            <select
+                                id="alert-status-${id}"
+                                aria-label="New status for alert ${id}">
+                                ${options}
+                            </select>
+                            <button
+                                id="alert-update-${id}"
+                                type="button"
+                                onclick="updateAlertStatus(${id})">
+                                Update
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += "</tbody></table>";
+        container.innerHTML = html;
+    }
+
+    async function updateAlertStatus(alertId) {
+        const dropdown =
+            document.getElementById(`alert-status-${alertId}`);
+
+        const button =
+            document.getElementById(`alert-update-${alertId}`);
+
+        if (!dropdown) {
+            alert("Status selector not found.");
+            return;
+        }
+
+        const newStatus = normalizeStatus(dropdown.value);
+
+        if (button) {
+            button.disabled = true;
+            button.textContent = "Saving...";
+        }
+
+        try {
+            const response = await fetch(
+                `${API_URL}/api/alerts/${alertId}/status`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                }
+            );
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || `HTTP ${response.status}`);
+            }
+
+            setAlertMessage(
+                `Alert #${alertId} updated to ${newStatus.replace("_", " ")}.`,
+                "success-message"
+            );
+
+            await loadAlerts();
+            await loadStatistics();
+
+        } catch (error) {
+            console.error("Status update error:", error);
+
+            setAlertMessage(
+                `Status update failed: ${error.message}`,
+                "error-message"
+            );
+
+            if (button) {
+                button.disabled = false;
+                button.textContent = "Update";
+            }
+        }
+    }
+
+    function updateAlertStatistics() {
+        const total = cachedAlerts.length;
+
+        const closed = cachedAlerts.filter(
+            alert => normalizeStatus(alert.status) === "closed"
+        ).length;
+
+        const open = cachedAlerts.filter(
+            alert => ["new", "in_progress"].includes(
+                normalizeStatus(alert.status)
+            )
+        ).length;
+
+        document.getElementById("stat-alerts").textContent = total;
+        document.getElementById("stat-open").textContent = open;
+        document.getElementById("stat-closed").textContent = closed;
+    }
+
+    /*
+     * EVENTS
+     */
+    async function loadEvents() {
+        const container = document.getElementById("events-container");
+
+        try {
+            const data = await fetchJSON("/api/events");
+
+            cachedEvents = Array.isArray(data)
+                ? data
+                : (data.events || data.results || []);
+
+            renderEvents();
+        } catch (error) {
+            console.error("Error loading events:", error);
+
+            container.innerHTML = `
+                <div class="message error-message">
+                    Could not load events: ${escapeHTML(error.message)}
+                </div>
+            `;
+        }
+    }
+
+    function renderEvents() {
+        const container = document.getElementById("events-container");
+
+        if (cachedEvents.length === 0) {
+            container.innerHTML =
+                '<div class="message">No events found.</div>';
+            document.getElementById("stat-events").textContent = "0";
+            return;
+        }
+
+        let html = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Timestamp</th>
+                        <th>Source IP</th>
+                        <th>Service</th>
+                        <th>Event Type</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        cachedEvents.slice(0, 100).forEach(event => {
+            html += `
+                <tr>
+                    <td>${escapeHTML(event.id ?? "—")}</td>
+                    <td>${escapeHTML(formatDate(event.timestamp))}</td>
+                    <td>${escapeHTML(event.source_ip || "—")}</td>
+                    <td>${escapeHTML(event.service || "—")}</td>
+                    <td>${escapeHTML(
+                        event.event_type ||
+                        event.event_category ||
+                        event.type ||
+                        "—"
+                    )}</td>
+                    <td class="event-description">
+                        ${escapeHTML(
+                            event.description ||
+                            event.requested_path ||
+                            event.message ||
+                            "—"
+                        )}
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += "</tbody></table>";
+        container.innerHTML = html;
+
+        const total = cachedEvents.length;
+        document.getElementById("stat-events").textContent = total;
+    }
+
+    /*
+     * MITRE ATT&CK
+     *
+     * Displays techniques found in the alerts returned by the API.
+     */
+    function renderMitre() {
+        const container = document.getElementById("mitre-container");
+        const techniques = new Map();
+
+        cachedAlerts.forEach(alert => {
+            const id = alert.mitre_technique_id;
+
+            if (!id) return;
+
+            if (!techniques.has(id)) {
+                techniques.set(id, {
+                    id,
+                    name: alert.mitre_technique_name || "Technique name unavailable",
+                    tactic: alert.mitre_tactic || "Tactic unavailable",
+                    count: 0,
+                    severity: alert.severity || "low"
+                });
+            }
+
+            techniques.get(id).count += 1;
+        });
+
+        if (techniques.size === 0) {
+            container.innerHTML = `
+                <div class="message">
+                    No MITRE ATT&CK technique IDs are currently associated with alerts.
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = Array.from(techniques.values())
+            .map(technique => `
+                <article class="mitre-card">
+                    <div class="mitre-id">
+                        ${escapeHTML(technique.id)}
+                    </div>
+                    <h3>${escapeHTML(technique.name)}</h3>
+                    <p>
+                        Tactic: ${escapeHTML(technique.tactic)}
+                        <br>
+                        Associated alerts: ${technique.count}
+                        <br>
+                        Example severity: ${escapeHTML(technique.severity)}
+                    </p>
+                </article>
+            `).join("");
+    }
+
+    /*
+     * INITIALIZATION
+     */
+    document.getElementById("alert-filter").addEventListener(
+        "change",
+        renderAlerts
+    );
+
+    async function initializeDashboard() {
+        await checkAPI();
+
+        await Promise.all([
+            loadStatistics(),
+            loadAlerts(),
+            loadEvents()
+        ]);
+    }
+
+    initializeDashboard();
+
+    // Refresh displayed data periodically.
+    setInterval(() => {
+        checkAPI();
+        loadStatistics();
+        loadAlerts();
+        loadEvents();
+    }, 30000);
+</script>
+</body>
+</html>
+

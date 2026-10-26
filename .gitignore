@@ -1,0 +1,37 @@
+# Python environments
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Local database and runtime logs
+database/*.db
+*.sqlite
+*.sqlite3
+logs/*
+!logs/.gitkeep
+
+# Temporary files
+*.log
+.DS_Store
+# Python cache files
+**/__pycache__/
+
+# SSH private host keys
+honeypot/host_key
+honeypot/host_key.pub
+
+# Backup and temporary files
+*.backup
+*.bak
+*.pre_advanced_backup
+*.pre_dual_access.html
+*.pre_rename.html
+dashboard/templates/index.html@sS
+dashboard/templates/index_backup.html
+dashboard/templates/index_working.backup.html

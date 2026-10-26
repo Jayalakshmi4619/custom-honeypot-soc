@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Custom Honeypot SOC | Security Operations</title>
+<style>
+:root {
+  --bg:#080d17; --panel:#101827; --panel2:#0c1421;
+  --border:#243148; --text:#e7edf7; --muted:#8b9ab2;
+  --cyan:#43d9ed; --blue:#668cff; --red:#ff647c;
+  --orange:#ffb454; --green:#49dfad; --purple:#b69aff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+font:13px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,sans-serif}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.layout{display:flex;min-height:100vh}
+.sidebar{width:238px;flex-shrink:0;background:#0a111e;
+border-right:1px solid var(--border);padding:20px 13px;
+display:flex;flex-direction:column;transition:width .2s}
+.brand{display:flex;align-items:center;gap:11px;padding:4px 9px 24px}
+.brand-mark{width:36px;height:36px;border-radius:10px;
+display:grid;place-items:center;background:#102e40;color:var(--cyan);
+border:1px solid #245469;font-size:21px}
+.brand strong{font-size:15px;letter-spacing:1.4px}
+.brand small{display:block;color:var(--muted);font-size:10px;letter-spacing:1.5px}
+.nav-label{font-size:10px;letter-spacing:1.7px;color:#687991;
+padding:15px 11px 7px}
+.nav{display:flex;align-items:center;gap:12px;padding:10px 11px;
+margin:2px 0;color:#9eacc1;border:1px solid transparent;
+border-radius:7px;text-decoration:none}
+.nav .ico{width:18px;text-align:center;font-size:15px}
+.nav:hover,.nav.active{background:#132337;color:var(--cyan);border-color:#203b51}
+.nav.active{box-shadow:inset 2px 0 var(--cyan)}
+.side-bottom{margin-top:auto}
+.sensor{padding:13px;margin:15px 2px 4px;border:1px solid var(--border);
+border-radius:9px;background:#0e1927}
+.sensor-line{display:flex;justify-content:space-between;align-items:center}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;
+background:var(--green);margin-right:6px;box-shadow:0 0 9px #49dfad66}
+.muted{color:var(--muted)}
+.tiny{font-size:11px}
+main{flex:1;min-width:0}
+.topbar{height:66px;border-bottom:1px solid var(--border);
+display:flex;align-items:center;justify-content:space-between;
+padding:0 26px;background:#0b1220;gap:16px}
+.top-left,.top-right{display:flex;align-items:center;gap:14px}
+.icon-btn{border:1px solid var(--border);background:#101a2a;color:#aebbd0;
+border-radius:7px;padding:7px 10px}
+.crumb{color:var(--muted)}.crumb b{color:var(--text);font-weight:600}
+.live-pill{border:1px solid #1d594a;background:#10291f;color:var(--green);
+padding:5px 9px;border-radius:20px;font-size:11px}
+.clock{font-variant-numeric:tabular-nums;color:#b4c2d5}
+.content{padding:24px 26px 36px;max-width:1800px;margin:auto}
+.page-head{display:flex;justify-content:space-between;align-items:flex-start;
+gap:16px;margin-bottom:21px}
+h1{font-size:23px;margin:0 0 4px;font-weight:650;letter-spacing:-.5px}
+.subtitle{color:var(--muted);font-size:12px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{background:#142338;border:1px solid #2c405b;color:#d9e6f7;
+border-radius:6px;padding:8px 12px}
+.btn:hover{border-color:var(--cyan)}
+.btn.primary{background:#123849;border-color:#276478;color:#7deafb}
+.section-kicker{font-size:10px;letter-spacing:1.7px;color:#8193ad;
+margin:23px 0 11px}
+.grid{display:grid;gap:13px}
+.stats{grid-template-columns:repeat(4,minmax(0,1fr))}
+.card{background:linear-gradient(145deg,#111c2c,#0d1523);
+border:1px solid var(--border);border-radius:9px;min-width:0}
+.stat{padding:16px 17px;position:relative;overflow:hidden}
+.stat-top{display:flex;align-items:center;justify-content:space-between;
+color:#a4b3c8;font-size:11px}
+.stat-symbol{font-size:17px;color:var(--cyan)}
+.stat-number{font-size:29px;font-weight:650;letter-spacing:-1px;
+margin:11px 0 3px;font-variant-numeric:tabular-nums}
+.stat-foot{font-size:11px;color:var(--muted)}
+.accent-cyan{color:var(--cyan)}.accent-red{color:var(--red)}
+.accent-orange{color:var(--orange)}.accent-green{color:var(--green)}
+.panels{grid-template-columns:minmax(0,1.65fr) minmax(270px,1fr)}
+.panel-head{padding:14px 16px;border-bottom:1px solid var(--border);
+display:flex;justify-content:space-between;align-items:center;gap:12px}
+.panel-head h3{font-size:12px;margin:0;font-weight:650}
+.panel-sub{font-size:10px;color:var(--muted);margin-top:3px}
+.panel-body{padding:15px 16px}
+.tag{font-size:10px;padding:3px 7px;border-radius:4px;
+background:#182538;color:#a9bad0;border:1px solid #293b53}
+.chart-wrap{height:218px;position:relative}
+canvas{width:100%;height:100%;display:block}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:10px;color:var(--muted)}
+.legend span:before{content:"";display:inline-block;width:7px;height:7px;
+border-radius:2px;background:var(--dot,var(--cyan));margin-right:5px}
+.split-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mini{padding:12px;background:#0b1421;border:1px solid #202e43;border-radius:7px}
+.mini-label{font-size:10px;color:var(--muted)}
+.mini-value{font-size:20px;font-weight:650;margin-top:5px}
+.bar-list{display:grid;gap:14px}
+.bar-row{display:grid;grid-template-columns:92px 1fr 35px;gap:10px;
+align-items:center;font-size:11px}
+.bar-track{height:6px;background:#1c293c;border-radius:6px;overflow:hidden}
+.bar-fill{height:100%;border-radius:6px;background:var(--cyan);width:0;
+transition:width .35s}
+.bar-count{text-align:right;color:#bdc9d9;font-variant-numeric:tabular-nums}
+.lower-grid{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}
+.service-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.service-card{background:#0b1421;border:1px solid #223149;border-radius:7px;padding:13px}
+.service-title{display:flex;justify-content:space-between;align-items:center;
+font-weight:600;font-size:12px}
+.service-number{font-size:23px;margin-top:9px}
+.service-caption{color:var(--muted);font-size:10px}
+.tech-list{display:grid;gap:9px}
+.tech{padding:11px 12px;border:1px solid #293449;border-radius:7px;
+background:#0b1421;display:flex;justify-content:space-between;gap:10px}
+.tech-id{font-size:10px;color:var(--cyan);letter-spacing:.5px}
+.tech-name{font-size:12px;font-weight:600;margin-top:3px}
+.tech-desc{font-size:10px;color:var(--muted);margin-top:3px}
+.sev{font-size:10px;text-transform:uppercase;font-weight:700;
+align-self:flex-start;border-radius:4px;padding:3px 6px}
+.sev-high,.sev-critical{background:#3a1b2a;color:#ff8ca0}
+.sev-medium{background:#3a2b18;color:#ffc878}
+.sev-low{background:#133128;color:#72e7b8}
+.table-tools{display:flex;gap:8px;flex-wrap:wrap;padding:13px 15px;
+border-bottom:1px solid var(--border)}
+.field{background:#0a1320;color:#cdd8e8;border:1px solid #2a394e;
+border-radius:6px;padding:8px 10px;min-width:130px;outline:none}
+.field:focus{border-color:#3c9aaf}
+.search{flex:1;min-width:170px}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;white-space:nowrap}
+th{text-align:left;font-size:10px;color:#7f90a9;font-weight:600;
+letter-spacing:.7px;background:#0c1523;padding:12px 14px}
+td{padding:12px 14px;border-top:1px solid #1d2a3d;font-size:11px}
+tbody tr:hover{background:#142033}
+.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+.ip{color:#8edff1}.event-name{color:#dce7f7;font-weight:600}
+.status{background:#18283a;color:#aebfd4;border:1px solid #2b3b50;
+border-radius:4px;padding:4px 6px;font-size:10px}
+.status.new{color:#ffadbd;border-color:#633144}
+.status.in_progress{color:#ffcf83;border-color:#5a4727}
+.status.investigated{color:#83e5d0;border-color:#235a51}
+.status.closed{color:#a1b0c3}
+.empty{text-align:center;color:var(--muted);padding:30px}
+.footer{display:flex;justify-content:space-between;gap:12px;padding:12px 15px;
+border-top:1px solid var(--border);font-size:10px;color:var(--muted)}
+.notice{margin-bottom:15px;border:1px solid #26384f;background:#0e1a29;
+border-radius:7px;padding:10px 13px;color:#a8bbd3;font-size:11px}
+.notice.error{border-color:#633144;color:#ffb2c0}
+.refreshing{color:var(--green)}
+@media(max-width:1100px){
+ .sidebar{width:68px;padding:16px 8px}.brand{padding:4px 8px 24px}
+ .brand-copy,.nav-label,.nav-text,.sensor,.side-bottom .nav-text{display:none}
+ .nav{justify-content:center;padding:12px 5px}.nav .ico{width:auto}
+ .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .panels,.lower-grid{grid-template-columns:1fr}
+}
+@media(max-width:620px){
+ .topbar{padding:0 13px}.content{padding:17px 12px}
+ .page-head{display:block}.actions{margin-top:13px}
+ .stats{gap:8px}.stat{padding:12px}.stat-number{font-size:24px}
+ .top-right .clock{display:none}.crumb{display:none}
+ .split-stats{gap:7px}.bar-row{grid-template-columns:75px 1fr 25px}
+}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-mark">⌁</div>
+    <div class="brand-copy"><strong>Custom Honeypot SOC</strong><small>SECURITY OPERATIONS</small></div>
+  </div>
+  <div class="nav-label">MONITORING</div>
+  <a class="nav active" href="#overview"><span class="ico">▦</span><span class="nav-text">Overview</span></a>
+  <a class="nav" href="#events"><span class="ico">⌕</span><span class="nav-text">Event Explorer</span></a>
+  <a class="nav" href="#alerts"><span class="ico">⚑</span><span class="nav-text">Alert Investigations</span></a>
+  <div class="nav-label">THREAT INTELLIGENCE</div>
+  <a class="nav" href="#attackers"><span class="ico">◎</span><span class="nav-text">Attacker Activity</span></a>
+  <a class="nav" href="#mitre"><span class="ico">▤</span><span class="nav-text">MITRE ATT&CK</span></a>
+  <div class="nav-label">INFRASTRUCTURE</div>
+  <a class="nav" href="#services"><span class="ico">⌘</span><span class="nav-text">Service Telemetry</span></a>
+  <a class="nav" href="#events"><span class="ico">◷</span><span class="nav-text">Raw Events</span></a>
+  <div class="side-bottom">
+    <div class="sensor">
+      <div class="sensor-line"><b>Sensor status</b><span class="dot"></span></div>
+      <div class="tiny muted" style="margin-top:8px">Custom Honeypot</div>
+      <div class="tiny accent-green" id="sensorStatus">Checking API...</div>
+      <div class="tiny muted" style="margin-top:8px">API · localhost:5000</div>
+    </div>
+    <a class="nav" href="#overview"><span class="ico">⚙</span><span class="nav-text">System Overview</span></a>
+  </div>
+</aside>
+
+<main>
+<header class="topbar">
+  <div class="top-left">
+    <button class="icon-btn" id="sidebarToggle" title="Expand or collapse navigation">☰</button>
+    <div class="crumb">Security Operations <span class="muted">/</span> <b>Overview</b></div>
+  </div>
+  <div class="top-right">
+    <span class="live-pill"><span class="dot"></span>LIVE MONITORING</span>
+    <span class="clock" id="clock">--:--:--</span>
+    <button class="icon-btn" id="refreshBtn">↻ Refresh</button>
+  </div>
+</header>
+
+<div class="content" id="overview">
+  <div class="page-head">
+    <div>
+      <h1>Security Operations Center</h1>
+      <div class="subtitle">Honeypot telemetry, attack surface visibility &amp; threat investigations</div>
+    </div>
+    <div class="actions">
+      <span class="tag">ENVIRONMENT: LAB</span>
+      <span class="tag">INGESTION: API</span>
+      <button class="btn primary" id="exportBtn">↓ Export Events</button>
+    </div>
+  </div>
+
+  <div class="notice" id="apiNotice">
+    Connecting to the honeypot API. Dashboard values will populate from available backend data.
+  </div>
+
+  <div class="section-kicker">THREAT LANDSCAPE / CURRENT TELEMETRY</div>
+  <div class="grid stats">
+    <div class="card stat">
+      <div class="stat-top"><span>TOTAL EVENTS CAPTURED</span><span class="stat-symbol">⌁</span></div>
+      <div class="stat-number" id="totalEvents">—</div>
+      <div class="stat-foot">Events returned by the API</div>
+    </div>
+    <div class="card stat">
+      <div class="stat-top"><span>SECURITY ALERTS</span><span class="stat-symbol accent-red">⚑</span></div>
+      <div class="stat-number accent-red" id="totalAlerts">—</div>
+      <div class="stat-foot">Alert records currently available</div>
+    </div>
+    <div class="card stat">
+      <div class="stat-top"><span>UNIQUE ATTACKERS</span><span class="stat-symbol accent-orange">◎</span></div>
+      <div class="stat-number accent-orange" id="uniqueAttackers">—</div>
+      <div class="stat-foot">Distinct source IPs reported</div>
+    </div>
+    <div class="card stat">
+      <div class="stat-top"><span>HIGH / CRITICAL ALERTS</span><span class="stat-symbol accent-red">△</span></div>
+      <div class="stat-number" id="highAlerts">—</div>
+      <div class="stat-foot">Priority alert records</div>
+    </div>
+  </div>
+
+  <div class="section-kicker">DETECTION ANALYTICS</div>
+  <div class="grid panels">
+    <section class="card">
+      <div class="panel-head">
+        <div><h3>Event Distribution</h3><div class="panel-sub">Breakdown by event type · API statistics</div></div>
+        <span class="tag">EVENTS</span>
+      </div>
+      <div class="panel-body">
+        <div class="chart-wrap"><canvas id="eventChart"></canvas></div>
+        <div class="legend" id="eventLegend"></div>
+      </div>
+    </section>
+    <section class="card" id="attackers">
+      <div class="panel-head">
+        <div><h3>Top Source Activity</h3><div class="panel-sub">Sources ranked by reported event count</div></div>
+        <span class="tag">SOURCES</span>
+      </div>
+      <div class="panel-body"><div class="bar-list" id="attackerBars">
+        <div class="empty">Waiting for statistics…</div>
+      </div></div>
+    </section>
+  </div>
+
+  <div class="section-kicker">SERVICE TELEMETRY &amp; ATTACK MAPPING</div>
+  <div class="grid lower-grid">
+    <section class="card" id="services">
+      <div class="panel-head">
+        <div><h3>Service Exposure</h3><div class="panel-sub">SSH and HTTP activity observed by the honeypot</div></div>
+        <span class="tag">SSH / HTTP</span>
+      </div>
+      <div class="panel-body">
+        <div class="service-grid" id="serviceGrid">
+          <div class="service-card"><div class="service-title">SSH <span class="tag">PORT 22</span></div><div class="service-number">—</div><div class="service-caption">Awaiting service statistics</div></div>
+          <div class="service-card"><div class="service-title">HTTP <span class="tag">PORT 80</span></div><div class="service-number">—</div><div class="service-caption">Awaiting service statistics</div></div>
+        </div>
+        <div style="margin-top:20px">
+          <div class="panel-sub" style="margin-bottom:12px">MOST REQUESTED HTTP PATHS</div>
+          <div class="bar-list" id="httpPaths"><div class="empty">Waiting for HTTP statistics…</div></div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="section-kicker" id="alerts">ALERT TRIAGE / INVESTIGATION QUEUE</div>
+  <section class="card">
+    <div class="panel-head">
+      <div><h3>Security Alerts</h3><div class="panel-sub">Review severity, source, service and investigation status</div></div>
+      <span class="tag" id="alertCountLabel">0 ALERTS</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>SEVERITY</th><th>ALERT / TECHNIQUE</th><th>SOURCE IP</th><th>SERVICE</th><th>EVENTS</th><th>STATUS</th></tr></thead>
+        <tbody id="alertsBody"><tr><td colspan="6" class="empty">Loading alert queue…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="footer"><span>Alert status changes are sent to the API.</span><span id="alertFooter">Awaiting data</span></div>
+  </section>
+
+  <div class="section-kicker" id="events">EVENT EXPLORER / CAPTURED ACTIVITY</div>
+  <section class="card">
+    <div class="panel-head">
+      <div><h3>Captured Event Stream</h3><div class="panel-sub">Search and filter the events returned by the backend</div></div>
+      <span class="tag">LATEST EVENTS</span>
+    </div>
+    <div class="table-tools">
+      <input class="field search" id="eventSearch" placeholder="Search IP, event type, protocol, details…">
+      <select class="field" id="protocolFilter"><option value="">All protocols</option><option value="SSH">SSH</option><option value="HTTP">HTTP</option><option value="TCP">TCP</option></select>
+      <select class="field" id="typeFilter"><option value="">All event types</option></select>
+      <button class="btn" id="clearFilters">Clear filters</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>TIMESTAMP</th><th>SOURCE IP</th><th>EVENT TYPE</th><th>PROTOCOL</th><th>DETAILS</th></tr></thead>
+        <tbody id="eventsBody"><tr><td colspan="5" class="empty">Loading captured events…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="footer"><span id="eventRange">No events loaded</span><span id="lastUpdated">Last update: —</span></div>
+  </section>
+  <div class="section-kicker">MITRE ATT&CK MAPPING / TECHNIQUE OBSERVATIONS</div>
+    <section class="card" id="mitre" style="grid-column:1 / -1">
+      <div class="panel-head">
+        <div><h3>MITRE ATT&amp;CK Observations</h3><div class="panel-sub">Technique metadata attached to current alerts</div></div>
+        <span class="tag">ATT&amp;CK</span>
+      </div>
+      <div class="panel-body"><div class="tech-list" id="mitreList">
+        <div class="empty">Loading mapped techniques…</div>
+      </div></div>
+    </section>
+
+  <div class="footer" style="border:0;padding:20px 2px">
+    <span>CUSTOM HONEYPOT SOC · SECURITY MONITORING</span>
+    <span>Data shown is limited to records provided by your API.</span>
+  </div>
+</div>
+</main>
+</div>
+
+<script>
+const API = `${window.location.protocol}//${window.location.hostname}:5000`;
+const state = {statistics:{}, events:[], alerts:[], lastUpdated:null};
+const palette = ['#43d9ed','#668cff','#ff647c','#ffb454','#49dfad','#b69aff','#7da4bb','#f08cc3'];
+const $ = id => document.getElementById(id);
+const number = n => Number(n || 0).toLocaleString();
+const safe = value => String(value ?? '—').replace(/[&<>"']/g, c => ({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}[c]));
+function pick(obj, keys) {
+  if (!obj || typeof obj !== 'object') return {};
+  for (const key of keys) if (obj[key] && typeof obj[key] === 'object') return obj[key];
+  return obj;
+}
+function entries(obj) {
+  if (Array.isArray(obj)) return obj.map((v,i)=>[v?.name || v?.event_type || v?.source_ip || String(i), Number(v?.count ?? v?.total ?? v?.event_count ?? 0)]);
+  if (obj && typeof obj === 'object') return Object.entries(obj).map(([k,v])=>[k,Number(typeof v==='object' ? v.count ?? v.total ?? v.event_count ?? 0 : v)||0]);
+  return [];
+}
+function severityClass(s) {
+  const v = String(s||'medium').toLowerCase();
+  return ['critical','high','medium','low'].includes(v) ? 'sev-'+v : 'sev-medium';
+}
+function severityRank(s) {
+  return ({critical:4,high:3,medium:2,low:1})[String(s||'').toLowerCase()]||0;
+}
+function formatTime(v) {
+  if (!v) return '—';
+  const d = new Date(v);
+  return isNaN(d) ? safe(v) : d.toLocaleString();
+}
+async function getJSON(path) {
+  const response = await fetch(API+path, {headers:{'Accept':'application/json'}});
+  if (!response.ok) throw new Error(path+' returned HTTP '+response.status);
+  return response.json();
+}
+function drawChart(canvasId, pairs) {
+  const canvas = $(canvasId), ctx = canvas.getContext('2d');
+  const rect = canvas.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  const ratio = window.devicePixelRatio || 1;
+  canvas.width = Math.round(rect.width*ratio);
+  canvas.height = Math.round(rect.height*ratio);
+  ctx.scale(ratio,ratio);
+  const w=rect.width,h=rect.height,pad={l:34,r:10,t:12,b:35};
+  ctx.clearRect(0,0,w,h);
+  const usableW=w-pad.l-pad.r, usableH=h-pad.t-pad.b;
+  const data=pairs.slice(0,8);
+  if (!data.length || data.every(d=>!d[1])) {
+    ctx.fillStyle='#8494ab';ctx.font='12px sans-serif';ctx.textAlign='center';
+    ctx.fillText('No event distribution data returned',w/2,h/2);return;
+  }
+  const max=Math.max(1,...data.map(d=>d[1]));
+  ctx.strokeStyle='#26364c';ctx.fillStyle='#8293aa';ctx.font='10px sans-serif';
+  ctx.textAlign='right';
+  for(let i=0;i<=4;i++){
+    const y=pad.t+usableH*i/4;
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();
+    ctx.fillText(Math.round(max*(1-i/4)).toLocaleString(),pad.l-6,y+3);
+  }
+  const slot=usableW/data.length, bw=Math.min(32,slot*.55);
+  data.forEach((d,i)=>{
+    const x=pad.l+slot*i+(slot-bw)/2;
+    const bh=(d[1]/max)*usableH;
+    ctx.fillStyle=palette[i%palette.length];
+    ctx.beginPath();
+    const y=pad.t+usableH-bh, r=Math.min(4,bw/2);
+    ctx.roundRect(x,y,bw,bh,[r,r,0,0]);ctx.fill();
+    ctx.fillStyle='#9baac0';ctx.textAlign='center';
+    const label=String(d[0]).replace(/_/g,' ');
+    ctx.fillText(label.length>10?label.slice(0,9)+'…':label,x+bw/2,h-13);
+  });
+  $('eventLegend').innerHTML=data.slice(0,5).map((d,i)=>
+    `<span style="--dot:${palette[i%palette.length]}">${safe(d[0])}: ${number(d[1])}</span>`).join('');
+}
+function renderBars(id, data, emptyText) {
+  const root=$(id);
+  if(!data.length){root.innerHTML=`<div class="empty">${safe(emptyText)}</div>`;return;}
+  const max=Math.max(1,...data.map(d=>d[1]));
+  root.innerHTML=data.slice(0,6).map((d,i)=>`
+    <div class="bar-row">
+      <span title="${safe(d[0])}">${safe(String(d[0]).length>15?String(d[0]).slice(0,14)+'…':d[0])}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.max(1,d[1]/max*100)}%;background:${palette[i%palette.length]}"></div></div>
+      <span class="bar-count">${number(d[1])}</span>
+    </div>`).join('');
+}
+function renderStatistics(s) {
+  $('totalEvents').textContent=number(s.total_events);
+  $('totalAlerts').textContent=number(s.total_alerts ?? state.alerts.length);
+  $('uniqueAttackers').textContent=number(s.unique_attackers);
+  const sev=pick(s,['alert_severity','severity_distribution']);
+  let high=0;
+  for(const [k,v] of entries(sev)) if(['high','critical'].includes(String(k).toLowerCase())) high+=v;
+  if(!high) high=state.alerts.filter(a=>['high','critical'].includes(String(a.severity).toLowerCase())).length;
+  $('highAlerts').textContent=number(high);
+  const eventTypes=pick(s,['event_types','alert_types']);
+  drawChart('eventChart',entries(eventTypes).sort((a,b)=>b[1]-a[1]));
+  const attackers=entries(s.top_attackers).sort((a,b)=>b[1]-a[1]);
+  renderBars('attackerBars',attackers,'No attacker ranking returned by the API');
+  const services=entries(s.services);
+  const normalized=services.map(([k,v])=>[String(k).toUpperCase(),v]);
+  const ssh=normalized.filter(d=>d[0].includes('SSH')).reduce((a,d)=>a+d[1],0);
+  const http=normalized.filter(d=>d[0].includes('HTTP')).reduce((a,d)=>a+d[1],0);
+  $('serviceGrid').innerHTML=[
+    ['SSH','PORT 22',ssh],['HTTP','PORT 80',http]
+  ].map(([name,port,count])=>`<div class="service-card">
+    <div class="service-title">${name}<span class="tag">${port}</span></div>
+    <div class="service-number">${number(count)}</div>
+    <div class="service-caption">Reported service activity</div>
+    <div class="bar-track" style="margin-top:10px"><div class="bar-fill" style="width:${Math.min(100,count/Math.max(1,ssh,http)*100)}%"></div></div>
+    </div>`).join('');
+  renderBars('httpPaths',entries(s.http_paths).sort((a,b)=>b[1]-a[1]),'No HTTP path statistics returned');
+}
+function renderAlerts() {
+  const rows=state.alerts;
+  $('alertCountLabel').textContent=rows.length+' ALERTS';
+  $('alertFooter').textContent=rows.length+' records returned';
+  if(!rows.length){$('alertsBody').innerHTML='<tr><td colspan="6" class="empty">No alert records returned by the API.</td></tr>';renderMitre();return;}
+  $('alertsBody').innerHTML=rows.slice(0,30).map(a=>`
+    <tr>
+      <td><span class="sev ${severityClass(a.severity)}">${safe(a.severity||'medium')}</span></td>
+      <td><div class="event-name">${safe(a.alert_type||'Security alert')}</div>
+      <div class="tiny muted">${safe(a.mitre_technique_id||'')} ${safe(a.mitre_technique_name||'')}</div></td>
+      <td class="mono ip">${safe(a.source_ip)}</td>
+      <td>${safe(a.service)}</td><td>${number(a.event_count)}</td>
+      <td><select class="status ${safe(a.status||'new')}" data-alert-id="${Number(a.id)}" aria-label="Update alert status">
+        ${['new','in_progress','investigated','closed'].map(v=>`<option value="${v}" ${(a.status||'new')===v?'selected':''}>${v.replace('_',' ')}</option>`).join('')}
+      </select></td>
+    </tr>`).join('');
+  renderMitre();
+}
+function renderMitre() {
+  const seen=new Set();
+  const mapped=state.alerts.filter(a=>{
+    const id=a.mitre_technique_id||a.mitre_technique_name;
+    if(!id||seen.has(id))return false;seen.add(id);return true;
+  }).slice(0,5);
+  $('mitreList').innerHTML=mapped.length?mapped.map(a=>`
+    <div class="tech"><div>
+      <div class="tech-id">${safe(a.mitre_technique_id||'ATT&CK')}</div>
+      <div class="tech-name">${safe(a.mitre_technique_name||a.alert_type||'Observed technique')}</div>
+      <div class="tech-desc">${safe(a.mitre_tactic||'Tactic not supplied by API')}</div>
+    </div><span class="sev ${severityClass(a.severity)}">${safe(a.severity||'medium')}</span></div>`).join('')
+    :'<div class="empty">No MITRE technique metadata available in current alerts.</div>';
+}
+function renderEvents() {
+  const q=$('eventSearch').value.toLowerCase().trim();
+  const proto=$('protocolFilter').value.toLowerCase();
+  const type=$('typeFilter').value.toLowerCase();
+  const filtered=state.events.filter(e=>{
+    const blob=[e.source_ip,e.event_type,e.protocol,e.details,e.path,e.method,e.username].join(' ').toLowerCase();
+    return (!q||blob.includes(q))&&(!proto||String(e.protocol||'').toLowerCase().includes(proto))&&(!type||String(e.event_type||'').toLowerCase()===type);
+  });
+  $('eventRange').textContent=`${filtered.length} matching events · ${state.events.length} loaded`;
+  $('eventsBody').innerHTML=filtered.length?filtered.slice(0,100).map(e=>`
+    <tr><td class="mono">${safe(formatTime(e.timestamp))}</td>
+    <td class="mono ip">${safe(e.source_ip)}</td>
+    <td><span class="event-name">${safe(e.event_type)}</span></td>
+    <td>${safe(e.protocol)}</td>
+    <td title="${safe(e.details)}">${safe(String(e.details||e.path||e.method||'—').slice(0,100))}</td></tr>`).join('')
+    :'<tr><td colspan="5" class="empty">No events match these filters.</td></tr>';
+  const types=[...new Set(state.events.map(e=>e.event_type).filter(Boolean))].sort();
+  const select=$('typeFilter'), current=select.value;
+  select.innerHTML='<option value="">All event types</option>'+types.map(t=>`<option value="${safe(t)}">${safe(t)}</option>`).join('');
+  select.value=types.includes(current)?current:'';
+}
+async function loadDashboard() {
+  $('apiNotice').classList.remove('error');
+  $('apiNotice').textContent='Refreshing telemetry from the honeypot API…';
+  try {
+    const [stats,events,alerts]=await Promise.all([
+      getJSON('/api/statistics'),getJSON('/api/events'),getJSON('/api/alerts')
+    ]);
+    state.statistics=stats||{};
+    state.events=Array.isArray(events)?events:(events.events||[]);
+    state.alerts=Array.isArray(alerts)?alerts:(alerts.alerts||[]);
+    renderStatistics(state.statistics);
+    renderAlerts();
+    renderEvents();
+    $('sensorStatus').textContent='API CONNECTED';
+    $('sensorStatus').className='tiny accent-green';
+    $('apiNotice').textContent=`API connected successfully · ${state.events.length} event records and ${state.alerts.length} alerts loaded.`;
+    state.lastUpdated=new Date();
+    $('lastUpdated').textContent='Last update: '+state.lastUpdated.toLocaleTimeString();
+  } catch(err) {
+    $('sensorStatus').textContent='API UNAVAILABLE';
+    $('sensorStatus').className='tiny accent-red';
+    $('apiNotice').classList.add('error');
+    $('apiNotice').textContent='Could not load all dashboard data. Check that the API server is running on port 5000. Details: '+err.message;
+    console.error('Dashboard API error:',err);
+  }
+}
+document.addEventListener('change',async e=>{
+  const el=e.target;
+  if(!el.matches('[data-alert-id]'))return;
+  const id=el.dataset.alertId, status=el.value;
+  el.disabled=true;
+  try {
+    const response=await fetch(`${API}/api/alerts/${encodeURIComponent(id)}/status`,{
+      method:'PATCH',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({status})
+    });
+    if(!response.ok)throw new Error('HTTP '+response.status);
+    const alert=state.alerts.find(a=>String(a.id)===String(id));
+    if(alert)alert.status=status;
+    el.className='status '+status;
+    $('apiNotice').textContent=`Alert ${id} status updated to "${status.replace('_',' ')}".`;
+  } catch(err) {
+    $('apiNotice').classList.add('error');
+    $('apiNotice').textContent='Could not update alert status: '+err.message;
+    await loadDashboard();
+  } finally {el.disabled=false;}
+});
+['eventSearch','protocolFilter','typeFilter'].forEach(id=>$(id).addEventListener(id==='eventSearch'?'input':'change',renderEvents));
+$('clearFilters').addEventListener('click',()=>{
+  $('eventSearch').value='';$('protocolFilter').value='';$('typeFilter').value='';renderEvents();
+});
+$('refreshBtn').addEventListener('click',loadDashboard);
+$('exportBtn').addEventListener('click',()=>{
+  const rows=[['timestamp','source_ip','event_type','protocol','details'],...state.events.map(e=>[
+    e.timestamp,e.source_ip,e.event_type,e.protocol,e.details
+  ])];
+  const csv=rows.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+  const a=document.createElement('a');a.href=url;a.download='honeypot-events.csv';a.click();URL.revokeObjectURL(url);
+});
+$('sidebarToggle').addEventListener('click',()=>{
+  const side=document.querySelector('.sidebar');
+  const collapsed=side.style.width==='68px';
+  side.style.width=collapsed?'238px':'68px';
+  side.querySelectorAll('.brand-copy,.nav-label,.nav-text,.sensor').forEach(el=>el.style.display=collapsed?'':'none');
+  side.querySelectorAll('.nav').forEach(el=>el.style.justifyContent=collapsed?'':'center');
+});
+document.querySelectorAll('.nav[href^="#"]').forEach(link=>link.addEventListener('click',()=>{
+  document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));
+  link.classList.add('active');
+}));
+function tick(){ $('clock').textContent=new Date().toLocaleTimeString(); }
+tick();setInterval(tick,1000);
+loadDashboard();
+setInterval(loadDashboard,30000);
+window.addEventListener('resize',()=>drawChart('eventChart',entries(pick(state.statistics,['event_types','alert_types'])).sort((a,b)=>b[1]-a[1])));
+</script>
+</body>
+</html>
